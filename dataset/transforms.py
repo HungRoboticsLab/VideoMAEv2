@@ -229,8 +229,22 @@ class GroupCenterCrop(object):
 
     def __call__(self, img_tuple):
         img_group, label = img_tuple
+
         return ([self.worker(img) for img in img_group], label)
 
+class GroupCenterCropAdaptive(object):
+
+    def __init__(self, fraction):
+        self.fraction = fraction
+
+    def __call__(self, img_tuple):
+        img_group, label = img_tuple
+        im_size = img_group[0].size
+        image_w, image_h = im_size[0], im_size[1]
+        new_w, new_h = self.fraction * image_w, self.fraction * image_h
+        worker = torchvision.transforms.CenterCrop((new_h,new_w))  
+
+        return ([worker(img) for img in img_group], label)
 
 class GroupRandomHorizontalFlip(object):
     """Randomly horizontally flips the given PIL.Image with a probability of 0.5

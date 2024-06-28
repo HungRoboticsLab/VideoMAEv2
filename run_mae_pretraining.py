@@ -342,6 +342,15 @@ def main(args):
         if checkpoint_model is None:
             checkpoint_model = checkpoint
 
+        if 'vit_b_k710_dl_from_giant.pth' in args.finetune: # EDIT - 12/6/23
+            # ensures that the fine-tuned distilled parameters can still be loaded during the pre-training stage
+            new_checkpoint_model = dict()
+            for name,params in checkpoint_model.items():
+                new_name = 'encoder.' + name
+                new_checkpoint_model[new_name] = params
+            checkpoint_model = new_checkpoint_model
+            print('Name of loaded model parameters changed!')
+
         utils.load_state_dict(model, checkpoint_model)
 
     model.to(device)
@@ -353,9 +362,9 @@ def main(args):
     print('number of params: {} M'.format(n_parameters / 1e6))
 
     # scale the lr
-    args.lr = args.lr * total_batch_size / 256
-    args.min_lr = args.min_lr * total_batch_size / 256
-    args.warmup_lr = args.warmup_lr * total_batch_size / 256
+    args.lr = args.lr * total_batch_size # / 256 
+    args.min_lr = args.min_lr * total_batch_size # / 256 
+    args.warmup_lr = args.warmup_lr * total_batch_size # / 256 
 
     print("LR = %.8f" % args.lr)
     print("Batch size = %d" % total_batch_size)
@@ -380,6 +389,7 @@ def main(args):
         warmup_epochs=args.warmup_epochs,
         warmup_steps=args.warmup_steps,
     )
+
     if args.weight_decay_end is None:
         args.weight_decay_end = args.weight_decay
     wd_schedule_values = utils.cosine_scheduler(args.weight_decay,
