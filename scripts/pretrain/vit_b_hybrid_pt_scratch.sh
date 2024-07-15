@@ -29,17 +29,18 @@ OMP_NUM_THREADS=1 python -m torch.distributed.launch --nproc_per_node=${GPUS_PER
         --decoder_mask_ratio 0.5 \
         --model pretrain_videomae_base_patch16_224 \
         --decoder_depth 4 \
-        --batch_size 1 \
+        --batch_size 6 \
         --num_sample 4 \
         --num_frames 16 \
         --sampling_rate 10 \
         --num_workers 10 \
-        --lr 1e-3 \
+        --lr 0.5e-3 \
+        --clip_grad 0.5 \
         --opt adamw \
         --opt_betas 0.9 0.95 \
         --warmup_epochs 5 \
-        --save_ckpt_freq 5 \
-        --epochs 100 \
+        --save_ckpt_freq 2 \
+        --epochs 200 \
         --log_dir ${OUTPUT_DIR} \
         --output_dir ${OUTPUT_DIR} \
         ${PY_ARGS}
