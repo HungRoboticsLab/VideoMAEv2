@@ -18,7 +18,7 @@ PY_ARGS=${@:3}  # Other training args
 
 # batch_size can be adjusted according to the graphics card
 # batch_size = 3 (two A4000 GPUs)
-OMP_NUM_THREADS=1 python -m torch.distributed.launch --nproc_per_node=${GPUS_PER_NODE} \
+OMP_NUM_THREADS=1 python -m debugpy --listen 5678 --wait-for-client -m torch.distributed.launch --nproc_per_node=${GPUS_PER_NODE} \
         --master_port ${MASTER_PORT} --nnodes=${N_NODES} --node_rank=$1 --master_addr=$2 \
         run_mae_pretraining.py \
         --data_path ${DATA_PATH} \

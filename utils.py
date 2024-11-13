@@ -303,7 +303,12 @@ def init_distributed_mode(args):
 
     args.distributed = True
 
-    torch.cuda.set_device(args.gpu)
+    # jmTemp: 1 gpu on local machine, don't commit this!
+    local_rank = int(os.environ["LOCAL_RANK"])
+    # torch.cuda.set_device(args.gpu)
+    torch.cuda.set_device(local_rank)
+    # jmTemp: ^^^^  don't commit this!
+
     args.dist_backend = 'nccl'
     print(
         '| distributed init (rank {}): {}, gpu {}'.format(

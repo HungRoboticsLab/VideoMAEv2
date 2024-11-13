@@ -266,7 +266,7 @@ def get_model(args):
 
     if version.parse(torch.__version__) > version.parse('1.13.1'):
         torch.set_float32_matmul_precision('high')
-        model = torch.compile(model)
+        # model = torch.compile(model) # jmTemp, don't commit this!
 
     return model
 
@@ -374,7 +374,8 @@ def main(args):
 
     if args.distributed:
         model = torch.nn.parallel.DistributedDataParallel(
-            model, device_ids=[args.gpu], find_unused_parameters=False)
+            model, device_ids=[args.local_rank], find_unused_parameters=False)
+            # model, device_ids=[args.gpu], find_unused_parameters=False)
         model_without_ddp = model.module
 
     optimizer = create_optimizer(args, model_without_ddp)
