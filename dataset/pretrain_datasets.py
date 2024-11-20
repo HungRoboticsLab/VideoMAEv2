@@ -55,6 +55,7 @@ class DataAugmentationForVideoMAEv2(object):
 
     def __call__(self, images):
         process_data, _ = self.transform(images)
+        
         encoder_mask_map = self.encoder_mask_map_generator()
         if hasattr(self, 'decoder_mask_map_generator'):
             decoder_mask_map = self.decoder_mask_map_generator()

@@ -3,7 +3,7 @@ set -x
 
 export MASTER_PORT=${MASTER_PORT:-12321}
 
-OUTPUT_DIR='/home/jay/data/results/vit_b_pt_50e_scratch'
+OUTPUT_DIR='/home/jay/data/results/vit_l_pt_50e_scratch'
 DATA_PATH='/data/vit/meta/video_files_list.csv'
 DATA_ROOT='/data/vit'
 
@@ -27,7 +27,7 @@ OMP_NUM_THREADS=1 python -m debugpy --listen 5678 --wait-for-client -m torch.dis
         --mask_ratio 0.9 \
         --decoder_mask_type run_cell \
         --decoder_mask_ratio 0.5 \
-        --model pretrain_videomae_base_patch16_224 \
+        --model pretrain_videomae_large_patch16_224 \
         --decoder_depth 4 \
         --batch_size 1 \
         --num_sample 4 \

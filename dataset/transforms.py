@@ -9,6 +9,7 @@ import math
 import numbers
 import random
 import warnings
+import time
 
 import numpy as np
 import torch
@@ -421,8 +422,23 @@ class GroupMultiScaleCrop(object):
         ]
         self.interpolation = Image.BILINEAR
 
+    def create_collage(self, images, grid_size=(4, 4), image_size=(100, 100)):
+        collage = Image.new('RGB', (grid_size[1] * image_size[0], grid_size[0] * image_size[1]))
+        for i, img in enumerate(images):
+            img = img.resize(image_size)
+            x = (i % grid_size[1]) * image_size[0]
+            y = (i // grid_size[1]) * image_size[1]
+            collage.paste(img, (x, y))
+        return collage
+
     def __call__(self, img_tuple):
         img_group, label = img_tuple
+
+        # # output images to directory
+        # collage = self.create_collage(img_group)
+        # unique_filename = f"collage_{int(time.time())}.jpg"
+        # collage.save(unique_filename)
+
 
         im_size = img_group[0].size
 
