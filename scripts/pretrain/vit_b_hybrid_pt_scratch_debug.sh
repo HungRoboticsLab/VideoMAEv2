@@ -3,7 +3,8 @@ set -x
 
 export MASTER_PORT=${MASTER_PORT:-12321}
 
-OUTPUT_DIR='/home/jay/data/results/vit_b_pt_50e_scratch'
+OUTPUT_DIR='/home/jay/data/results/vit_b_pt_300e_scratch'
+TORCHELASTIC_ERROR_FILE=${OUTPUT_DIR}/torchelastic_error.log
 DATA_PATH='/data/vit/meta/video_files_list.csv'
 DATA_ROOT='/data/vit'
 
@@ -39,7 +40,7 @@ OMP_NUM_THREADS=1 python -m debugpy --listen 5678 --wait-for-client -m torch.dis
         --opt_betas 0.9 0.95 \
         --warmup_epochs 10 \
         --save_ckpt_freq 10 \
-        --epochs 50 \
+        --epochs 300 \
         --log_dir ${OUTPUT_DIR} \
         --output_dir ${OUTPUT_DIR} \
         --local_rank ${LOCAL_RANK} \

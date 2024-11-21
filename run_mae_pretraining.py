@@ -20,6 +20,7 @@ import torch
 import torch.backends.cudnn as cudnn
 from packaging import version
 from timm.models import create_model
+from torch.distributed.elastic.multiprocessing.errors import record
 
 # NOTE: Do not comment `import models`, it is used to register models
 import models  # noqa: F401
@@ -271,6 +272,7 @@ def get_model(args):
     return model
 
 
+@record
 def main(args):
     utils.init_distributed_mode(args)
 
