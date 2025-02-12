@@ -43,6 +43,7 @@ def train_one_epoch(model: torch.nn.Module,
             metric_logger.log_every(data_loader, print_freq, header)):
         # assign learning rate & weight decay for each step
         it = start_steps + step  # global training iteration
+        #if it < len(lr_schedule_values): # EDIT - 12/6/23
         if lr_schedule_values is not None or wd_schedule_values is not None:
             for i, param_group in enumerate(optimizer.param_groups):
                 if lr_schedule_values is not None:
@@ -172,6 +173,10 @@ def train_one_epoch(model: torch.nn.Module,
 
         if lr_scheduler is not None:
             lr_scheduler.step_update(start_steps + step)
+
+        # EDIT - 12/14/23 (for quick iteration)
+        # if step == 2:
+        #     break
     # gather the stats from all processes
     metric_logger.synchronize_between_processes()
     print("Averaged stats:", metric_logger)

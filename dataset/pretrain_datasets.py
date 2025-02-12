@@ -1,6 +1,7 @@
 import os
 import random
 
+import pandas as pd
 import numpy as np
 import torch
 from PIL import Image
@@ -16,6 +17,7 @@ from .transforms import (
     GroupNormalize,
     Stack,
     ToTorchFormatTensor,
+    GroupCenterCropAdaptive,
 )
 
 
@@ -26,10 +28,12 @@ class DataAugmentationForVideoMAEv2(object):
         self.input_std = [0.229, 0.224, 0.225]
         div = True
         roll = False
+        fraction = 0.8 # EDIT - 11/22/23
         normalize = GroupNormalize(self.input_mean, self.input_std)
         self.train_augmentation = GroupMultiScaleCrop(args.input_size,
                                                       [1, .875, .75, .66])
         self.transform = transforms.Compose([
+            GroupCenterCropAdaptive(fraction=fraction), # EDIT - 11/22/23
             self.train_augmentation,
             Stack(roll=roll),
             ToTorchFormatTensor(div=div),
@@ -414,6 +418,7 @@ class VideoMAE(torch.utils.data.Dataset):
 
         self.video_loader = get_video_loader()
         self.image_loader = get_image_loader()
+        # self.allowable_frames_df = pd.read_csv(os.path.join(root,'Meta/Pretraining/allowable_frames_list_chunks.csv'),delimiter=' ',header=None,index_col=0) # EDIT - 11/22/23
 
         if not self.lazy_init:
             self.clips = self._make_dataset(root, setting)
@@ -424,42 +429,46 @@ class VideoMAE(torch.utils.data.Dataset):
                                  "Check your data directory (opt.data-dir)."))
 
     def __getitem__(self, index):
-        try:
-            video_name, start_idx, total_frame = self.clips[index]
-            if total_frame < 0:  # load video
-                decord_vr = self.video_loader(video_name)
-                duration = len(decord_vr)
+        # try:
+        video_name, start_idx, total_frame = self.clips[index]
+        if total_frame < 0:  # load video
+            decord_vr = self.video_loader(video_name)
+            duration = len(decord_vr)
 
-                segment_indices, skip_offsets = self._sample_train_indices(
-                    duration)
-                frame_id_list = self.get_frame_id_list(duration,
-                                                       segment_indices,
-                                                       skip_offsets)
-                video_data = decord_vr.get_batch(frame_id_list).asnumpy()
-                images = [
-                    Image.fromarray(video_data[vid, :, :, :]).convert('RGB')
-                    for vid, _ in enumerate(frame_id_list)
-                ]
-            else:  # load frames
-                segment_indices, skip_offsets = self._sample_train_indices(
-                    total_frame)
-                frame_id_list = self.get_frame_id_list(total_frame,
-                                                       segment_indices,
-                                                       skip_offsets)
+            segment_indices, skip_offsets = self._sample_train_indices(
+                duration)
+            
+            # start_frame,end_frame = self.allowable_frames_df.loc[video_name.split(self.root)[1].lstrip('/'),:] # EDIT - 11/22/23
+            # segment_indices, skip_offsets = self._sample_train_indices_constrained(start_frame,end_frame) # EDIT - 11/22/23
 
-                images = []
-                for idx in frame_id_list:
-                    frame_fname = os.path.join(
-                        video_name, self.name_pattern.format(idx + start_idx))
-                    img = self.image_loader(frame_fname)
-                    img = Image.fromarray(img)
-                    images.append(img)
+            frame_id_list = self.get_frame_id_list(duration,
+                                                    segment_indices,
+                                                    skip_offsets)
+            video_data = decord_vr.get_batch(frame_id_list).asnumpy()
+            images = [
+                Image.fromarray(video_data[vid, :, :, :]).convert('RGB')
+                for vid, _ in enumerate(frame_id_list)
+            ]
+        else:  # load frames
+            segment_indices, skip_offsets = self._sample_train_indices(
+                total_frame)
+            frame_id_list = self.get_frame_id_list(total_frame,
+                                                    segment_indices,
+                                                    skip_offsets)
 
-        except Exception as e:
-            print("Failed to load video from {} with error {}".format(
-                video_name, e))
-            index = random.randint(0, len(self.clips) - 1)
-            return self.__getitem__(index)
+            images = []
+            for idx in frame_id_list:
+                frame_fname = os.path.join(
+                    video_name, self.name_pattern.format(idx + start_idx))
+                img = self.image_loader(frame_fname)
+                img = Image.fromarray(img)
+                images.append(img)
+
+        # except Exception as e:
+        #     print("Failed to load video from {} with error {}".format(
+        #         video_name, e))
+        #     index = random.randint(0, len(self.clips) - 1)
+        #     return self.__getitem__(index)
 
         if self.num_sample > 1:
             process_data_list = []
@@ -531,6 +540,32 @@ class VideoMAE(torch.utils.data.Dataset):
             skip_offsets = np.zeros(
                 self.skip_length // self.new_step, dtype=int)
         return offsets + 1, skip_offsets
+
+    # def _sample_train_indices_constrained(self, start_frame, end_frame): # EDIT - 11/22/23
+    #     """ Samples a starting frame index (or indices) in the video. 
+    #         The start and end frame are informed by human timestamps.
+
+    #     Args:
+    #         start_frame (int): first allowable frame in video
+    #         end_frame (int): last allowable frame in video
+        
+    #     Returns:
+    #         offsets (List[int]): a set of candidate start frame(s)
+    #     """
+    #     # print('Start frame: %i, End frame: %i' % (start_frame,end_frame))
+    #     average_duration = (end_frame - self.skip_length + 
+    #                         1) // self.num_segments
+    #     if average_duration > 0:
+    #         offsets = np.multiply(
+    #             list(range(self.num_segments)), average_duration)
+    #         offsets = offsets + np.random.randint(start_frame,
+    #             average_duration, size=self.num_segments) 
+    #     else:
+    #         offsets = np.zeros((self.num_segments, ))
+            
+    #     skip_offsets = np.zeros(
+    #             self.skip_length // self.new_step, dtype=int)
+    #     return offsets + 1, skip_offsets
 
     def get_frame_id_list(self, duration, indices, skip_offsets):
         frame_id_list = []
