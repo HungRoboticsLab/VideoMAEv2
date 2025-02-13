@@ -243,9 +243,32 @@ class GroupCenterCropAdaptive(object):
         im_size = img_group[0].size
         image_w, image_h = im_size[0], im_size[1]
         new_w, new_h = self.fraction * image_w, self.fraction * image_h
-        worker = torchvision.transforms.CenterCrop((new_h,new_w))  
+        
+        # output images to directory
+        self.print_frames(img_group, prefix="1_original_")
 
-        return ([worker(img) for img in img_group], label)
+        worker = torchvision.transforms.CenterCrop((new_h,new_w))
+
+        temp_ret_images = [worker(img) for img in img_group]
+
+        self.print_frames(img_group, prefix="2_after_center_crop")
+
+        # return ([worker(img) for img in img_group], label)
+        return (temp_ret_images, label)
+    
+    def print_frames(self, images, prefix=""):
+        for i, img in enumerate(images):
+            unique_filename = f"{prefix}_{i}_{int(time.time())}.jpg"
+            img.save(unique_filename)
+    
+    def create_collage(self, images, grid_size=(4, 4), image_size=(100, 100)):
+        collage = Image.new('RGB', (grid_size[1] * image_size[0], grid_size[0] * image_size[1]))
+        for i, img in enumerate(images):
+            img = img.resize(image_size)
+            x = (i % grid_size[1]) * image_size[0]
+            y = (i // grid_size[1]) * image_size[1]
+            collage.paste(img, (x, y))
+        return collage
 
 class GroupRandomHorizontalFlip(object):
     """Randomly horizontally flips the given PIL.Image with a probability of 0.5
@@ -430,15 +453,20 @@ class GroupMultiScaleCrop(object):
             y = (i // grid_size[1]) * image_size[1]
             collage.paste(img, (x, y))
         return collage
+    
+    def print_frames(self, images, prefix=""):
+        for i, img in enumerate(images):
+            unique_filename = f"{prefix}_{i}_{int(time.time())}.jpg"
+            img.save(unique_filename)
 
     def __call__(self, img_tuple):
         img_group, label = img_tuple
 
-        # # output images to directory
+        # output images to directory
         # collage = self.create_collage(img_group)
-        # unique_filename = f"collage_{int(time.time())}.jpg"
+        # unique_filename = f"collage_after_center_crop_{int(time.time())}.jpg"
         # collage.save(unique_filename)
-
+        self.print_frames(img_group, prefix="3_before_multiscalecrop_")
 
         im_size = img_group[0].size
 
@@ -448,10 +476,16 @@ class GroupMultiScaleCrop(object):
                 (offset_w, offset_h, offset_w + crop_w, offset_h + crop_h))
             for img in img_group
         ]
+
+        self.print_frames(crop_img_group, prefix="4_after_crop_")
+
         ret_img_group = [
             img.resize((self.input_size[0], self.input_size[1]),
                        self.interpolation) for img in crop_img_group
         ]
+
+        self.print_frames(ret_img_group, prefix="5_after_resize_")
+        
         return (ret_img_group, label)
 
     def _sample_crop_size(self, im_size):
